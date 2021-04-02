@@ -1,23 +1,16 @@
 import ospaths, strutils
 
 # run with 
-# nim build_lpc2148 project.nims
-task build_lpc2148, " compile and link for lpc2148 ":
-  echo "current directory is: " & thisDir()
+# nim run_armdemo project.nims
+task run_armdemo, " compile and link with arm-none-eabi-gcc toolchain and start qemu ":
+  mkdir("out")
+  exec "arm-none-eabi-as -march=armv5te -g src/startup.S -o out/startup.o"
+  exec "nim c --cpu:arm --os:any --gc:arc  --d:useMalloc  --listCmd --hint:cc --hint:link --stackTrace:off --nimcache:out/nimcache src/test.nim"
+  exec "arm-none-eabi-objcopy -O binary out/test.elf out/test.bin"
+  "out/test.lss".writeFile(staticExec("arm-none-eabi-objdump -h -S -C out/test.elf"))
+  # create detailed assembly output
   
-  if not dirExists("out"):
-    mkDir("out")
+  exec "qemu-system-arm -M versatilepb -m 128M -nographic -no-reboot -kernel out/test.bin"
+  # use the versatilepb machine
+  # "-no-reboot" ensures that we exit qemu on reset
   
-  withDir thisDir() & "/src":
-    echo "asm Startup.S"
-    exec "arm-none-eabi-gcc -c -mcpu=arm7tdmi-s -x assembler-with-cpp -DROM_RUN -Wa,-adhlns=Startup.lst,-gdwarf-2 Startup.S -o Startup.o"
-    echo "compile and link project"
-    exec "nim c --listFullPaths:on --genDeps:on --genScript:on --cpu:arm --os:any --gc:arc --d:useMalloc --nimcache:../out/nimcache main.nim"
-    echo "generate motorola srecord output format"
-    exec "arm-none-eabi-objcopy.exe -O srec -S main.elf main.srec"
-  
-  var outfiles = @["main.elf","main.srec","Startup.o","Startup.lst"]
-
-  for file2move in outfiles:
-    mvFile("src/" & file2move,"out/" & file2move)
- 
