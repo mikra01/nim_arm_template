@@ -3,3 +3,8 @@ nimblecache/
 htmldocs/
 out/
 *.lst
+*.o
+*.map
+*.lss
+*.elf
+
